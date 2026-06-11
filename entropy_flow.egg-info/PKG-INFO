@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: entropy-flow
+Version: 0.1.0
+Summary: Entropy, divergence, and information-theoretic measures for probability distributions and time series
+License: MIT
+Requires-Python: >=3.8
+License-File: LICENSE
+Requires-Dist: numpy>=1.20
+Requires-Dist: scipy>=1.7
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Dynamic: license-file
