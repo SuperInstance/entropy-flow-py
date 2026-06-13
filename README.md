@@ -1,61 +1,97 @@
-# entropy-flow
+# Entropy Flow (Python)
 
-Information-theoretic measures for probability distributions and time series. Shannon entropy, divergences, mutual information, permutation entropy, sample entropy, and transfer entropy.
+**Entropy Flow** is a Python library implementing information-theoretic measures for probability distributions and time series — including Shannon entropy, KL divergence, Jensen-Shannon divergence, mutual information, transfer entropy, permutation entropy, and sample entropy.
 
-## Features
+## Why It Matters
 
-- **Shannon Entropy** — H(X) for arbitrary distributions, configurable base
-- **KL Divergence** — D(P‖Q) with automatic zero-handling
-- **JS Divergence** — Symmetric, bounded [0, 1] in base 2
-- **Mutual Information** — I(X; Y) via histogram binning
-- **Entropy Rate** — Conditional entropy H(X_t | X_{t-1}...X_{t-k})
-- **Transfer Entropy** — Directional information flow between time series
-- **Permutation Entropy** — Ordinal pattern entropy, normalized [0, 1]
-- **Sample Entropy** — Regularity measure for time series
-- **Approximate Entropy** — Complexity measure for short sequences
+Information theory provides the mathematical language for quantifying uncertainty, correlation, and complexity. These measures are fundamental to machine learning (cross-entropy loss, information gain in decision trees), neuroscience (neural coding efficiency), physics (thermodynamic entropy), and signal processing (complexity analysis). This library brings together the most important entropy-based measures in a single, consistent API built on NumPy and SciPy. Unlike specialized libraries that focus on one measure, Entropy Flow provides the full toolkit: static measures (Shannon, KL, JS), dynamic measures (transfer entropy, entropy rate), and complexity measures (permutation entropy, sample entropy, approximate entropy).
 
-## Installation
+## How It Works
 
-```bash
-pip install entropy-flow
+**Shannon Entropy:**
 ```
+H(p) = −Σ pᵢ log₂(pᵢ)
+```
+Maximum: log₂(n) for uniform distribution over n elements. Computed in O(n).
 
-## Usage
+**KL Divergence:**
+```
+D(P‖Q) = Σ pᵢ log(pᵢ/qᵢ)
+```
+Asymmetric (D(P‖Q) ≠ D(Q‖P)), non-negative, zero iff P = Q. Measures information lost when Q approximates P.
+
+**Jensen-Shannon Divergence:**
+```
+JS(P‖Q) = ½ D(P‖M) + ½ D(Q‖M),  where M = ½(P + Q)
+```
+Symmetric, bounded [0, 1], always finite. The square root of JS divergence is a metric (satisfies triangle inequality).
+
+**Mutual Information:**
+```
+I(X; Y) = ΣΣ p(x,y) log₂(p(x,y) / (p(x)p(y)))
+```
+Estimated via 2D histogram binning. O(n × bins) computation.
+
+**Transfer Entropy:**
+```
+TE(S→T) = Σ p(tₙ₊₁, tₙ, sₙ) log₂(p(tₙ₊₁|tₙ,sₙ) / p(tₙ₊₁|tₙ))
+```
+Measures directed information flow from source S to target T, beyond what T's own history predicts. Computed via k-history context counting. O(n × k) for context construction.
+
+**Permutation Entropy:**
+```
+PE = H(π) / log₂(m!)
+```
+Where π ranges over m! permutation patterns of order m. Normalized to [0, 1]. Measures complexity of temporal ordering.
+
+**Sample Entropy:**
+```
+SampEn = −ln(A/B)
+```
+Where B = matching templates of length m, A = matching templates of length m+1, within tolerance r (typically 0.2σ). O(n²) computation.
+
+## Quick Start
 
 ```python
-from entropy_flow import (
-    shannon_entropy, kl_divergence, js_divergence,
-    mutual_information, entropy_rate, transfer_entropy,
-    permutation_entropy, sample_entropy, approximate_entropy
-)
 import numpy as np
+from entropy_flow import shannon_entropy, kl_divergence, mutual_information
 
-# Shannon entropy of a fair coin
-H = shannon_entropy([0.5, 0.5])  # 1.0 bit
+p = [0.5, 0.3, 0.2]
+print(f"H(p) = {shannon_entropy(p):.4f}")  # 1.485 bits
 
-# KL divergence
-kl = kl_divergence([0.3, 0.7], [0.5, 0.5])
+q = [0.4, 0.4, 0.2]
+print(f"D(p||q) = {kl_divergence(p, q):.4f}")
 
-# Mutual information between correlated variables
-np.random.seed(42)
-x = np.random.randn(10000)
-mi = mutual_information(x, x, bins=20)  # high MI for identical
-
-# Permutation entropy of a periodic signal
-signal = np.sin(np.linspace(0, 4*np.pi, 1000))
-pe = permutation_entropy(signal, order=3)  # low for periodic
-
-# Sample entropy of random vs regular
-random_se = sample_entropy(np.random.randn(200), m=2)
-regular_se = sample_entropy(np.sin(np.linspace(0, 10*np.pi, 200)), m=2)
-# random_se > regular_se (more irregular = higher entropy)
+x = np.random.randn(1000)
+y = 0.5 * x + np.random.randn(1000) * 0.5
+print(f"I(X;Y) = {mutual_information(x, y):.4f} bits")
 ```
 
-## Testing
+## API
 
-```bash
-pytest tests/ -v    # 22 tests
-```
+| Function | Description |
+|----------|-------------|
+| `shannon_entropy(p, base)` | Shannon entropy H(p) |
+| `kl_divergence(p, q)` | KL divergence D(P‖Q) |
+| `js_divergence(p, q)` | Jensen-Shannon divergence |
+| `mutual_information(x, y, bins)` | I(X; Y) via histogram |
+| `entropy_rate(series, k)` | Conditional entropy H(X_t \| history) |
+| `transfer_entropy(source, target, k)` | Directed information flow |
+| `permutation_entropy(series, order, delay)` | Complexity of ordering patterns |
+| `sample_entropy(series, m, r)` | Template-matching complexity |
+| `approximate_entropy(series, m, r)` | Approximate complexity |
+
+## Architecture Notes
+
+Entropy Flow (Python) provides the **analytical toolkit** for measuring γ + η = C conservation. The avoidance ratio's conservation (Law 5, σ ≈ 0.001) is quantified using Shannon entropy across population scales. Transfer entropy measures the directed information flow between γ-layer (actions) and η-layer (models), and mutual information quantifies their statistical coupling.
+
+See [ARCHITECTURE.md](https://github.com/SuperInstance/SuperInstance/blob/main/ARCHITECTURE.md).
+
+## References
+
+1. Shannon, C.E. (1948). "A Mathematical Theory of Communication." *Bell System Technical Journal*, 27.
+2. Schreiber, T. (2000). "Measuring Information Transfer." *Physical Review Letters*, 85(2), 461–464.
+3. Richman, J.S. & Moorman, J.R. (2000). "Physiological Time-Series Analysis Using Approximate Entropy and Sample Entropy." *American Journal of Physiology*.
 
 ## License
 
